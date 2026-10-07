@@ -1,0 +1,7 @@
+# Dependencias de EJECUCION: ninguna.
+#
+# Gongora Studio usa solo la biblioteca estandar de Python (urllib, sqlite3,
+# json, zoneinfo). Es una decision deliberada: la instalacion es reproducible
+# sin resolver un arbol de dependencias y la superficie de supply-chain es nula.
+#
+# Requisito: Python >= 3.12

@@ -1,0 +1,19 @@
+[Unit]
+Description=Recogida de Faro cada 6 horas
+Documentation=file://__PROJECT__/README.md
+
+[Timer]
+# Primera ejecucion poco despues de arrancar la sesion de usuario.
+OnStartupSec=5min
+# Despues, cada 6 horas contadas desde la ultima ejecucion.
+OnUnitActiveSec=6h
+# Persistent=false es deliberado: tras un periodo apagado NO se lanzan de golpe
+# las ejecuciones perdidas. Solo se reanuda el ritmo normal.
+Persistent=false
+AccuracySec=1min
+# Dispersa la hora exacta para no coincidir siempre con el mismo minuto.
+RandomizedDelaySec=5min
+Unit=gongora-collect.service
+
+[Install]
+WantedBy=timers.target

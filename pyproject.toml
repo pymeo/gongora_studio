@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gongora-studio"
+version = "0.1.0"
+description = "Sistema de agentes para el proyecto musical GONGORA. Fase 1: agente Faro."
+requires-python = ">=3.12"
+# Sin dependencias de ejecucion: solo biblioteca estandar (urllib, sqlite3, json).
+# Esto es deliberado: reproducibilidad maxima y superficie de supply-chain nula.
+dependencies = []
+
+[project.scripts]
+gongora = "gongora.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.2"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

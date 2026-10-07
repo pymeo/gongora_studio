@@ -1,0 +1,19 @@
+[Unit]
+Description=Gongora Studio - recogida de datos de Faro
+Documentation=file://__PROJECT__/README.md
+# Si no hay red, el propio comando registra el error saneado y termina.
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__PROJECT__
+# --trigger timer queda registrado en collection_runs.trigger.
+# El comando toma un cerrojo flock: si ya hay una recogida en curso, sale sin
+# lanzar otra. Eso impide ejecuciones solapadas.
+ExecStart=__PROJECT__/.venv/bin/gongora collect --trigger timer
+TimeoutStartSec=900
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
