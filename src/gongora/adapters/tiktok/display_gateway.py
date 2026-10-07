@@ -180,8 +180,11 @@ class TikTokDisplayGateway:
 
     def fetch_profile(self) -> AccountProfile:
         client = self._require_client()
-        response = client.get("user/info",
-                              {"fields": ",".join(metrics_catalog.TT_PROFILE_FIELDS)})
+        fields = list(metrics_catalog.TT_PROFILE_FIELDS)
+        # `username` (el @ real) exige user.info.profile; sin el, solo display_name.
+        if self._credentials is not None and "user.info.profile" in self._credentials.scopes:
+            fields.append("username")
+        response = client.get("user/info", {"fields": ",".join(fields)})
         self._emit_raw("/v2/user/info", response.data)
         user = response.data.get("user") or {}
         counters = {
@@ -192,7 +195,7 @@ class TikTokDisplayGateway:
         return AccountProfile(
             platform=self.platform,
             account_id=str(user.get("open_id") or self._credentials.open_id or "desconocido"),
-            username=user.get("display_name"),
+            username=user.get("username") or user.get("display_name"),
             name=user.get("display_name"),
             counters=counters,
             fetched_at=datetime.now(UTC),

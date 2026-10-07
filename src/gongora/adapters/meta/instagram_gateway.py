@@ -1,7 +1,7 @@
 """Lectura de Instagram via Instagram API with Facebook Login (graph.facebook.com).
 
 Endpoints usados (todos verificados contra la cuenta real):
-    GET /me/accounts?fields=id,name,instagram_business_account
+    GET /{page-id}?fields=id,name,instagram_business_account
     GET /{ig-user-id}?fields=id,username,name,followers_count,media_count
     GET /{ig-user-id}/media?fields=...
     GET /{ig-media-id}/insights?metric=...
@@ -133,22 +133,23 @@ class InstagramGateway:
 
         verified: list[str] = []
         try:
-            accounts = self._client.get("me/accounts",
+            # Se consulta la pagina configurada directamente, no /me/accounts:
+            # /me/accounts solo existe para tokens de USUARIO, y el acceso
+            # duradero es un token de PAGINA (con el, /me es la propia pagina).
+            page_id = self._credentials.page_id
+            response = self._client.get(page_id,
                                         {"fields": "id,name,instagram_business_account"})
-            self._emit_raw("/me/accounts", accounts.payload)
-            pages = accounts.payload.get("data") or []
-            verified.append("listar_paginas")
-
-            page = next((p for p in pages if str(p.get("id")) == self._credentials.page_id), None)
-            if page is None:
-                found = ", ".join(str(p.get("id")) for p in pages) or "ninguna"
+            self._emit_raw(f"/{page_id}", response.payload)
+            page = response.payload
+            if str(page.get("id")) != page_id:
                 return ConnectionStatus(
                     platform=self.platform, connected=False,
-                    detail=(f"META_PAGE_ID={self._credentials.page_id} no aparece entre las "
-                            f"paginas del token (encontradas: {found})."),
+                    detail=(f"META_PAGE_ID={page_id} no devolvio la pagina esperada "
+                            f"(recibido: {page.get('id') or 'nada'})."),
                     token_state="valid", verified_capabilities=tuple(verified),
                     pending_capabilities=PENDING_CAPABILITIES,
                 )
+            verified.append("leer_pagina")
 
             linked = (page.get("instagram_business_account") or {}).get("id")
             if str(linked) != self._credentials.instagram_account_id:

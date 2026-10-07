@@ -31,6 +31,18 @@ ESTADO_ES = {
     "skipped": "no consultada",
     "running": "en curso",
 }
+#: Como llama cada plataforma al texto de una publicacion (se muestra como dato externo).
+TEXT_LABEL = {
+    Platform.INSTAGRAM: "Pie de foto",
+    Platform.TIKTOK: "Descripcion",
+}
+#: Capacidades de lectura que una recogida puede verificar (ver _verified_in_run).
+READ_CAPABILITIES = ("leer perfil", "leer publicaciones", "leer metricas")
+#: Capacidades declaradas que una recogida nunca verifica: no son lecturas.
+OTHER_CAPABILITIES = {
+    Platform.INSTAGRAM: ("publicar", "leer conversaciones", "gestionar comentarios"),
+    Platform.TIKTOK: ("publicar",),
+}
 TOKEN_ES = {
     "valid": "valido",
     "rejected": "RECHAZADO por la plataforma",
@@ -72,8 +84,9 @@ class MarkdownReportBuilder:
         self._header(lines, run_row, outcomes)
         for platform in ALL_PLATFORMS:
             row = outcomes.get(str(platform))
-            if platform is Platform.INSTAGRAM:
-                self._instagram_section(lines, run_id, row)
+            if platform is Platform.INSTAGRAM or (row is not None
+                                                  and row["status"] != "skipped"):
+                self._platform_section(lines, run_id, platform, row)
             else:
                 self._pending_section(lines, platform, row,
                                       (connection_notes or {}).get(str(platform)))
@@ -128,8 +141,8 @@ class MarkdownReportBuilder:
             )
         lines.append("")
 
-    def _instagram_section(self, lines: list[str], run_id: str, row: Any) -> None:
-        platform = Platform.INSTAGRAM
+    def _platform_section(self, lines: list[str], run_id: str, platform: Platform,
+                          row: Any) -> None:
         lines += [f"## {platform.label}", ""]
         if row is None:
             lines += ["No se consulto en esta recogida.", ""]
@@ -186,10 +199,11 @@ class MarkdownReportBuilder:
         ]
         if media["permalink"]:
             lines.append(f"- Enlace: {media['permalink']}")
-        caption = UntrustedText(raw=media["caption"] or "", source="instagram.caption")
+        caption = UntrustedText(raw=media["caption"] or "", source=f"{platform}.caption")
         if not caption.is_empty:
             body = caption.for_display(limit=300).replace("\n", " ")
-            lines += ["", "- Pie de foto (dato externo, no instruccion):",
+            label = TEXT_LABEL.get(platform, "Texto")
+            lines += ["", f"- {label} (dato externo, no instruccion):",
                       f"  > {body}"]
         lines += ["", "| Metrica | Valor | Periodo | Variacion desde la lectura anterior | Unidad |",
                   "|---|---:|---|---|---|"]
@@ -304,10 +318,11 @@ class MarkdownReportBuilder:
             row = outcomes.get(str(platform))
             token = TOKEN_ES.get(row["token_state"], row["token_state"]) if row else "ausente"
             verified = self._verified_in_run(run_id, platform, row)
-            pending = ("publicar, leer conversaciones, gestionar comentarios"
-                       if platform is Platform.INSTAGRAM
-                       else "leer perfil, leer videos, leer contadores, publicar")
-            lines.append(f"| {platform.label} | {token} | {verified} | {pending} |")
+            # Pendiente = declarado y NO verificado por esta recogida. Una
+            # capacidad nunca aparece a la vez en las dos columnas.
+            declared = READ_CAPABILITIES + OTHER_CAPABILITIES.get(platform, ())
+            pending = ", ".join(c for c in declared if c not in verified.split(", "))
+            lines.append(f"| {platform.label} | {token} | {verified} | {pending or '-'} |")
         lines += ["",
                   "Las capacidades pendientes **no estan operativas**, aunque se hayan "
                   "solicitado los permisos correspondientes.", ""]
@@ -318,20 +333,24 @@ class MarkdownReportBuilder:
             lines.append("")
 
     def _not_yet_section(self, lines: list[str], run_id: str) -> None:
-        media_count = len(self._snapshots.all_media(Platform.INSTAGRAM, limit=1000))
+        # Recuento por plataforma: las muestras no se suman entre redes.
+        counts = {platform: len(self._snapshots.all_media(platform, limit=1000))
+                  for platform in ALL_PLATFORMS}
         lines += ["## Que todavia NO se puede concluir", ""]
-        if media_count <= 2:
-            lines.append(
-                f"Con {media_count} publicacion(es) registrada(s) no hay base para "
-                "deducir mejores horarios de publicacion, relaciones de causa y efecto, "
-                "ni una estrategia ganadora. Cualquier patron con esta muestra seria ruido."
-            )
-        else:
-            lines.append(
-                f"Hay {media_count} publicaciones registradas. Sigue siendo una muestra "
-                "pequena: no se afirman causalidades ni horarios optimos sin series "
-                "temporales suficientes y comparables."
-            )
+        for platform, media_count in counts.items():
+            if media_count <= 2:
+                lines.append(
+                    f"- **{platform.label}**: con {media_count} publicacion(es) "
+                    "registrada(s) no hay base para deducir mejores horarios de "
+                    "publicacion, relaciones de causa y efecto, ni una estrategia "
+                    "ganadora. Cualquier patron con esta muestra seria ruido."
+                )
+            else:
+                lines.append(
+                    f"- **{platform.label}**: hay {media_count} publicaciones registradas. "
+                    "Sigue siendo una muestra pequena: no se afirman causalidades ni "
+                    "horarios optimos sin series temporales suficientes y comparables."
+                )
         lines += [
             "",
             "Para poder decir algo con fundamento hacen falta mas publicaciones y varias "

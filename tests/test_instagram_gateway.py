@@ -147,9 +147,9 @@ def test_admite_la_forma_total_value(credentials):
 
 def test_comprueba_el_vinculo_pagina_instagram(credentials):
     """Si la pagina apunta a otra cuenta de Instagram, no se da por conectado."""
-    cuentas = {"data": [{"id": "1327434437128534", "name": "GONGORA",
-                         "instagram_business_account": {"id": "otra-cuenta"}}]}
-    gateway = _gateway(credentials, {"/me/accounts": cuentas})
+    pagina = {"id": "1327434437128534", "name": "GONGORA",
+              "instagram_business_account": {"id": "otra-cuenta"}}
+    gateway = _gateway(credentials, {"/1327434437128534?": pagina})
     estado = gateway.check_connection()
     assert estado.connected is False
     assert "vinculada a la cuenta de Instagram otra-cuenta" in estado.detail
@@ -158,7 +158,7 @@ def test_comprueba_el_vinculo_pagina_instagram(credentials):
 def test_token_rechazado_deja_estado_visible(credentials):
     error = http_error(400, {"error": {"code": 190, "type": "OAuthException",
                                        "message": "Session has expired"}})
-    gateway = _gateway(credentials, {"/me/accounts": error})
+    gateway = _gateway(credentials, {"/1327434437128534?": error})
     estado = gateway.check_connection()
     assert estado.connected is False
     assert estado.token_state == "rejected"
@@ -177,3 +177,27 @@ def test_paginas_vacias_con_next_no_provocan_bucle(credentials):
     assert list(gateway.iter_media(max_items=100)) == []
     # El tope de paginas corta el recorrido en lugar de girar sin fin.
     assert gateway.api_calls <= 41
+
+
+def test_conexion_con_token_de_pagina_no_usa_me_accounts(credentials):
+    """Caso real: con token de Pagina, /me/accounts no existe (#100).
+
+    La comprobacion consulta la pagina configurada, que vale para token de
+    usuario y de Pagina.
+    """
+    pagina = {"id": "1327434437128534", "name": "GONGORA",
+              "instagram_business_account": {"id": "17841422599648154"}}
+    perfil = {"id": "17841422599648154", "username": "gongora__oficial",
+              "followers_count": 10, "media_count": 0}
+    no_existe = http_error(400, {"error": {"code": 100, "type": "OAuthException",
+                                           "message": "Tried accessing nonexisting field (accounts)"}})
+    gateway = _gateway(credentials, {
+        "/me/accounts": no_existe,
+        "/1327434437128534?": pagina,
+        "/17841422599648154/media": {"data": []},
+        "/17841422599648154?": perfil,
+    })
+    estado = gateway.check_connection()
+    assert estado.connected is True, estado.detail
+    assert "leer_pagina" in estado.verified_capabilities
+    assert "vinculo_pagina_instagram" in estado.verified_capabilities

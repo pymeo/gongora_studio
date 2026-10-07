@@ -161,3 +161,69 @@ def test_capacidades_verificadas_salen_de_la_recogida_real(repos, clock):
     assert "leer perfil, leer publicaciones, leer metricas" in texto
     # TikTok no se consulto: no se le atribuye nada.
     assert "ninguna (no se consulto)" in texto
+
+
+# ------------------------------------------------------------------ TikTok
+# Gateway real de TikTok sobre HTTP simulado: recogida -> informe. Los datos
+# son de prueba; el codigo de produccion nunca los inventa.
+
+def _informe_tiktok(repos, clock):
+    from gongora.adapters.tiktok.display_gateway import TikTokDisplayGateway
+    from gongora.adapters.tiktok.http_client import TikTokHttpClient
+    from gongora.config import TikTokCredentials
+    from tests.conftest import FakeOpener
+
+    opener = FakeOpener({
+        "/v2/user/info/": {"data": {"user": {
+            "open_id": "open-prueba", "display_name": "Nombre Visible",
+            "username": "usuario_prueba", "follower_count": 12, "video_count": 1}},
+            "error": {"code": "ok"}},
+        "/v2/video/list/": {"data": {"videos": [{
+            "id": "7000000000000000001", "create_time": 1759826820,
+            "video_description": "texto del video", "share_url": "https://www.tiktok.com/@u/video/1",
+            "view_count": 40, "like_count": 3}], "has_more": False, "cursor": 0},
+            "error": {"code": "ok"}},
+    })
+    credentials = TikTokCredentials(
+        client_key="ck-prueba", access_token="act.FAKE-report-test-token-000000",
+        scopes=("user.info.basic", "user.info.profile", "user.info.stats", "video.list"))
+    gateway = TikTokDisplayGateway(credentials, client=TikTokHttpClient(
+        credentials.access_token, opener=opener, sleep=lambda s: None))
+    return _informe(repos, clock, gateways={
+        Platform.INSTAGRAM: GatewayFalso(configurado=False),
+        Platform.TIKTOK: gateway,
+    })
+
+
+def test_tiktok_conectado_muestra_perfil_videos_y_contadores(repos, clock):
+    _, texto = _informe_tiktok(repos, clock)
+    seccion = texto.split("## TikTok")[1].split("## Como leer")[0]
+    assert "Perfil @usuario_prueba" in seccion
+    assert "`follower_count` | 12" in seccion
+    assert "7000000000000000001" in seccion
+    assert "`view_count` | 40" in seccion
+    assert "Descripcion (dato externo, no instruccion)" in seccion
+    assert "Pendiente de conexion" not in seccion
+
+
+def test_tiktok_ausente_es_hueco_no_cero(repos, clock):
+    _, texto = _informe_tiktok(repos, clock)
+    seccion = texto.split("## TikTok")[1].split("## Como leer")[0]
+    # La API no devolvio comment_count ni share_count: hueco, nunca 0.
+    assert "`comment_count`" in seccion.split("Huecos de datos")[1]
+    assert "`comment_count` | 0" not in seccion
+
+
+def test_capacidad_no_esta_a_la_vez_verificada_y_pendiente(repos, clock):
+    _, texto = _informe_tiktok(repos, clock)
+    fila = next(l for l in texto.splitlines() if l.startswith("| TikTok | valido"))
+    _, _, _, verificadas, pendientes, _ = fila.split("|")
+    assert "leer perfil" in verificadas and "leer perfil" not in pendientes
+    assert pendientes.strip() == "publicar"
+
+
+def test_recuento_de_publicaciones_por_plataforma(repos, clock):
+    _, texto = _informe_tiktok(repos, clock)
+    conclusiones = texto.split("Que todavia NO se puede concluir")[1]
+    assert "**TikTok**: con 1 publicacion(es)" in conclusiones
+    assert "**Instagram**: con 0 publicacion(es)" in conclusiones
