@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GÓNGORA · Escuchar</title>
+<meta name="description" content="Escucha «A motor parado» de GÓNGORA en Amazon Music y YouTube Music. Muy pronto en Spotify.">
+<meta property="og:type" content="music.song">
+<meta property="og:title" content="GÓNGORA · A motor parado">
+<meta property="og:description" content="Ya disponible en Amazon Music y YouTube Music. Muy pronto en Spotify.">
+<meta property="og:image" content="https://pymeo.github.io/gongora_studio/musica/a_motor_parado.jpg">
+<meta property="og:url" content="https://pymeo.github.io/gongora_studio/musica/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#120f1a">
+<style>
+  :root {
+    --bg: #120f1a;
+    --surface: rgba(255, 255, 255, .06);
+    --surface-hover: rgba(255, 255, 255, .11);
+    --line: rgba(255, 255, 255, .12);
+    --text: #f3f0f7;
+    --muted: #b3aac0;
+    --accent: #ff5a5f;
+    --go: #4fe0a8;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(60rem 40rem at 20% -10%, #3a1e3f 0%, transparent 60%),
+      radial-gradient(50rem 40rem at 110% 110%, #13334a 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 26rem; margin: 0 auto; padding: 2.5rem 16px 3rem; }
+  .artist {
+    margin: 0 0 1.75rem;
+    text-align: center;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: .5em;
+    padding-left: .5em;
+  }
+  .release { margin: 0 0 2.5rem; }
+  .cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+  }
+  h1 {
+    margin: 1.25rem 0 .25rem;
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: .12em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .sub { margin: 0 0 1.25rem; color: var(--muted); text-align: center; font-size: .9rem; }
+  .links { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  .links a, .links .soon {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.25rem;
+    padding: .75rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .links a:hover, .links a:focus-visible { background: var(--surface-hover); border-color: rgba(255, 255, 255, .3); }
+  .links a:active { transform: scale(.985); }
+  .links a:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
+  .cta {
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--go);
+    white-space: nowrap;
+  }
+  .links .soon { color: var(--muted); border-style: dashed; background: transparent; }
+  .links .soon .cta { color: var(--muted); }
+  footer { color: var(--muted); text-align: center; font-size: .8rem; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <p class="artist">GÓNGORA</p>
+
+  <!-- Una <section class="release"> por cancion. Solo enlaces reales y comprobados. -->
+  <section class="release" id="a-motor-parado" aria-labelledby="t-a-motor-parado">
+    <img class="cover" src="a_motor_parado.jpg" width="720" height="720"
+         alt="Luces de ciudad desenfocadas tras un cristal con lluvia, de noche">
+    <h1 id="t-a-motor-parado">A motor parado</h1>
+    <p class="sub">Ya disponible</p>
+    <ul class="links">
+      <li><a href="https://music.amazon.es/tracks/B0HM4HS7RV?do=play" rel="noopener" target="_blank">
+        Amazon Music <span class="cta">Escuchar</span></a></li>
+      <li><a href="https://music.youtube.com/watch?v=12JEqgdUa1s" rel="noopener" target="_blank">
+        YouTube Music <span class="cta">Escuchar</span></a></li>
+      <li><span class="soon" aria-disabled="true">Spotify <span class="cta">Muy pronto</span></span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>GÓNGORA · <i>Fuimos dos</i></p>
+  </footer>
+</main>
+</body>
+</html>
