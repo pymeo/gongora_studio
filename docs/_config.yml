@@ -1,0 +1,9 @@
+# GitHub Pages publica esta carpeta. Las paginas HTML se sirven tal cual.
+# La documentacion interna (Markdown) no forma parte de la web publica,
+# aunque se versione en esta misma carpeta.
+exclude:
+  - "*.md"
+  - tiktok-conexion.md
+  - credenciales.md
+  - arquitectura.md
+  - README.md

@@ -1,0 +1,63 @@
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --text: #1c1b1a;
+  --muted: #5f5b57;
+  --line: #e6e2dd;
+  --accent: #b4232f;
+  --accent-soft: #f6e7e8;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141312;
+    --surface: #1c1b19;
+    --text: #ece9e4;
+    --muted: #a8a29b;
+    --line: #2f2c29;
+    --accent: #f0646f;
+    --accent-soft: #2c1a1c;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+.wrap { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem; }
+
+header.site { border-bottom: 1px solid var(--line); }
+header.site .wrap {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .5rem 1.5rem; padding-block: 1rem;
+}
+.brand { font-weight: 700; letter-spacing: .02em; color: var(--text); text-decoration: none; }
+.brand span { color: var(--accent); }
+nav.site { display: flex; gap: 1.25rem; font-size: .95rem; }
+nav.site a { color: var(--muted); text-decoration: none; }
+nav.site a:hover, nav.site a[aria-current="page"] { color: var(--text); }
+
+main { padding-block: 3rem 4rem; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.2; margin: 0 0 .75rem; }
+h2 { font-size: 1.2rem; margin: 2.25rem 0 .5rem; }
+p, ul { margin: 0 0 1rem; }
+ul { padding-left: 1.25rem; }
+li { margin-bottom: .35rem; }
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 38rem; }
+.meta { color: var(--muted); font-size: .9rem; margin-bottom: 2rem; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin: 2.5rem 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.2rem; }
+.card h2 { font-size: 1rem; margin: 0 0 .35rem; }
+.card p { margin: 0; color: var(--muted); font-size: .95rem; }
+.note { background: var(--accent-soft); border-radius: 10px; padding: 1rem 1.2rem; font-size: .95rem; }
+
+footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+footer.site .wrap { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; padding-block: 1.25rem; }
+footer.site a { color: var(--muted); }

@@ -1,0 +1,20 @@
+# Credenciales: nunca en el repositorio.
+secrets.env
+tiktok.env
+.env
+.env.*
+*.env
+!.env.example
+.config/
+
+# Entorno y artefactos locales
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Datos locales de Gongora Studio (base de datos, informes, respuestas crudas, logs)
+var/
