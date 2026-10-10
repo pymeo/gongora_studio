@@ -22,7 +22,7 @@ import subprocess
 import sys
 import urllib.parse
 import webbrowser
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from gongora import __version__, redaction
@@ -750,6 +750,123 @@ def cmd_tiktok_refresh(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tiktok_upload_draft(args: argparse.Namespace) -> int:
+    """Sube un video como BORRADOR a la bandeja de TikTok. Nunca publica."""
+    from gongora.adapters.tiktok.upload import file_sha256, plan_chunks
+
+    _tiktok_logging(args)
+    path = Path(args.video).expanduser()
+    if not path.is_file():
+        print(f"{CROSS} No existe el fichero: {path}", file=sys.stderr)
+        return 1
+    plan = plan_chunks(path.stat().st_size)
+    sha = file_sha256(path)
+    print("TikTok - subida como BORRADOR (scope video.upload; no publica)\n")
+    _print_kv("Video", str(path))
+    _print_kv("Tamano", f"{plan.video_size / 1024 / 1024:.1f} MB en "
+                        f"{plan.total_chunk_count} trozo(s)")
+    _print_kv("sha256", sha)
+    if not args.confirm:
+        print(f"\n{DOT} Simulacion: no se ha llamado a TikTok. Repite con --confirm para "
+              "subirlo de verdad (cuenta para el limite de 5 subidas pendientes en 24 h).")
+        return 0
+
+    service = TikTokService.from_environment()
+    record: dict[str, object] = {
+        "at": datetime.now(UTC).isoformat(timespec="seconds"), "platform": "tiktok",
+        "kind": "inbox_draft", "file": str(path.resolve()), "size": plan.video_size,
+        "sha256": sha,
+    }
+    code = 0
+    try:
+        result = service.upload_draft(path, confirmed=True,
+                                      on_progress=lambda msg: print(f"  {msg}"))
+        record.update(publish_id=result.publish_id, status=result.status,
+                      fail_reason=result.fail_reason)
+    except GongoraError as exc:
+        record["error"] = exc.safe_message
+        print(f"{CROSS} {exc.safe_message}", file=sys.stderr)
+        code = 1
+    finally:
+        log = build_paths().home / "tiktok_uploads.jsonl"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    if code:
+        return code
+    print()
+    if result.status in ("SEND_TO_USER_INBOX", "PUBLISH_COMPLETE"):
+        print(f"{TICK} Borrador entregado. Abre la app de TikTok: te llegara una "
+              "notificacion para revisarlo, escribir el texto y publicarlo.")
+        return 0
+    detail = f" ({result.fail_reason})" if result.fail_reason else ""
+    print(f"{CROSS if result.status == 'FAILED' else WARN} Estado final: "
+          f"{result.status}{detail}. publish_id {result.publish_id}")
+    return 0 if result.status != "FAILED" else 1
+
+
+def cmd_tiktok_publish(args: argparse.Namespace) -> int:
+    """Publicacion directa con descripcion. Por defecto en privado (SELF_ONLY)."""
+    from gongora.adapters.tiktok.upload import file_sha256, plan_chunks, utf16_len
+
+    _tiktok_logging(args)
+    path = Path(args.video).expanduser()
+    caption_file = Path(args.caption_file).expanduser()
+    for required in (path, caption_file):
+        if not required.is_file():
+            print(f"{CROSS} No existe el fichero: {required}", file=sys.stderr)
+            return 1
+    caption = caption_file.read_text(encoding="utf-8").strip()
+    plan = plan_chunks(path.stat().st_size)
+    sha = file_sha256(path)
+    print("TikTok - publicacion directa (scope video.publish)\n")
+    _print_kv("Video", str(path))
+    _print_kv("Tamano", f"{plan.video_size / 1024 / 1024:.1f} MB en "
+                        f"{plan.total_chunk_count} trozo(s)")
+    _print_kv("Privacidad", args.privacy)
+    _print_kv("Descripcion", f"{utf16_len(caption)} / 2200 caracteres")
+    print("\n" + caption + "\n")
+    if not args.confirm:
+        print(f"{DOT} Simulacion: no se ha llamado a TikTok. Repite con --confirm para "
+              "publicar de verdad.")
+        return 0
+
+    service = TikTokService.from_environment()
+    record: dict[str, object] = {
+        "at": datetime.now(UTC).isoformat(timespec="seconds"), "platform": "tiktok",
+        "kind": "direct_post", "privacy_level": args.privacy, "file": str(path.resolve()),
+        "size": plan.video_size, "sha256": sha, "caption": caption,
+    }
+    code = 0
+    try:
+        result = service.publish(path, caption, confirmed=True, privacy_level=args.privacy,
+                                 on_progress=lambda msg: print(f"  {msg}"))
+        record.update(publish_id=result.publish_id, status=result.status,
+                      fail_reason=result.fail_reason, post_ids=list(result.post_ids))
+    except GongoraError as exc:
+        record["error"] = exc.safe_message
+        print(f"{CROSS} {exc.safe_message}", file=sys.stderr)
+        code = 1
+    finally:
+        log = build_paths().home / "tiktok_uploads.jsonl"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    if code:
+        return code
+    print()
+    if result.status == "PUBLISH_COMPLETE":
+        print(f"{TICK} Publicado ({args.privacy}). publish_id {result.publish_id}")
+        if args.privacy == "SELF_ONLY":
+            print("  Esta en privado: en la app, abre el video > ... > Privacidad para "
+                  "hacerlo publico.")
+        return 0
+    detail = f" ({result.fail_reason})" if result.fail_reason else ""
+    print(f"{CROSS if result.status == 'FAILED' else WARN} Estado final: "
+          f"{result.status}{detail}. publish_id {result.publish_id}")
+    return 0 if result.status != "FAILED" else 1
+
+
 def cmd_tiktok_check(args: argparse.Namespace) -> int:
     """Prueba real: perfil, estadisticas y ultimos videos de la cuenta conectada."""
     _tiktok_logging(args)
@@ -912,6 +1029,26 @@ def build_parser() -> argparse.ArgumentParser:
     tiktok_check.add_argument("--videos", type=int, default=5,
                               help="Cuantos videos recientes listar (0 = ninguno).")
     tiktok_check.set_defaults(func=cmd_tiktok_check)
+
+    tiktok_upload = tiktok_sub.add_parser(
+        "upload-draft", help="Sube un video como BORRADOR a la app de TikTok (no publica).")
+    tiktok_upload.add_argument("video", help="Fichero MP4.")
+    tiktok_upload.add_argument("--confirm", action="store_true",
+                               help="Confirmacion humana: sin ella solo se simula.")
+    tiktok_upload.set_defaults(func=cmd_tiktok_upload_draft)
+
+    tiktok_publish = tiktok_sub.add_parser(
+        "publish", help="Publica un video con descripcion (por defecto en privado).")
+    tiktok_publish.add_argument("video", help="Fichero MP4.")
+    tiktok_publish.add_argument("--caption-file", required=True,
+                                help="Fichero de texto con la descripcion.")
+    tiktok_publish.add_argument("--privacy", default="SELF_ONLY",
+                                choices=("SELF_ONLY", "MUTUAL_FOLLOW_FRIENDS",
+                                         "FOLLOWER_OF_CREATOR", "PUBLIC_TO_EVERYONE"),
+                                help="Privacidad (sin auditoria de TikTok solo SELF_ONLY).")
+    tiktok_publish.add_argument("--confirm", action="store_true",
+                                help="Confirmacion humana: sin ella solo se simula.")
+    tiktok_publish.set_defaults(func=cmd_tiktok_publish)
 
     return parser
 

@@ -70,9 +70,15 @@ IG_CORE_MEDIA_METRICS = (
 IG_INTERACTION_COMPONENTS = ("likes", "comments", "saved", "shares")
 IG_INTERACTION_TOTAL = "total_interactions"
 
+#: `views`, `likes` y `comments` son solo organicos: no cuentan la actividad de
+#: anuncios con la publicacion. Los `total_*` si la incluyen. Solo existen en
+#: Instagram API with Facebook Login. Verificado el 2026-10-09 contra el reel
+#: 18095103203640376 (views=1808, total_views=5565 con promocion activa).
+IG_TOTAL_METRICS = ("total_views", "total_likes", "total_comments")
+
 IG_OPTIONAL_BY_PRODUCT_TYPE: dict[str, tuple[str, ...]] = {
-    "REELS": ("ig_reels_avg_watch_time", "ig_reels_video_view_total_time"),
-    "FEED": ("profile_visits", "follows"),
+    "REELS": ("ig_reels_avg_watch_time", "ig_reels_video_view_total_time") + IG_TOTAL_METRICS,
+    "FEED": ("profile_visits", "follows") + IG_TOTAL_METRICS,
     "AD": (),
     "STORY": (),
 }
@@ -109,12 +115,21 @@ def _register(*specs: MetricSpec) -> None:
 _register(
     # --- Instagram: insights de publicacion ---
     MetricSpec(IG, "views", "cumulative", "reproducciones",
-               "Instagram: veces que se ha reproducido o mostrado. No son personas "
-               "ni escuchas en Spotify."),
+               "Instagram: veces que se ha reproducido o mostrado, solo organico (sin "
+               "anuncios). No son personas ni escuchas en Spotify."),
     MetricSpec(IG, "reach", "cumulative", "cuentas",
                "Instagram: cuentas unicas alcanzadas, segun Meta."),
-    MetricSpec(IG, "likes", "cumulative", "cuenta", "Instagram: me gusta acumulados."),
-    MetricSpec(IG, "comments", "cumulative", "cuenta", "Instagram: comentarios acumulados."),
+    MetricSpec(IG, "likes", "cumulative", "cuenta",
+               "Instagram: me gusta acumulados, solo organicos (sin anuncios)."),
+    MetricSpec(IG, "comments", "cumulative", "cuenta",
+               "Instagram: comentarios acumulados, solo organicos (sin anuncios)."),
+    MetricSpec(IG, "total_views", "cumulative", "reproducciones",
+               "Instagram: reproducciones incluida la actividad de anuncios y "
+               "promociones con la publicacion. No son personas."),
+    MetricSpec(IG, "total_likes", "cumulative", "cuenta",
+               "Instagram: me gusta incluida la actividad de anuncios."),
+    MetricSpec(IG, "total_comments", "cumulative", "cuenta",
+               "Instagram: comentarios incluida la actividad de anuncios."),
     MetricSpec(IG, "saved", "cumulative", "cuenta", "Instagram: guardados acumulados."),
     MetricSpec(IG, "shares", "cumulative", "cuenta", "Instagram: compartidos acumulados."),
     MetricSpec(IG, IG_INTERACTION_TOTAL, "cumulative", "cuenta",

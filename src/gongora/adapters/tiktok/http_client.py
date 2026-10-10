@@ -108,16 +108,20 @@ class TikTokHttpClient:
         return self._request(url, endpoint=f"/v2/{path.strip('/')}", body=None)
 
     def post(self, path: str, *, params: dict[str, Any] | None = None,
-             body: dict[str, Any] | None = None) -> TikTokResponse:
+             body: dict[str, Any] | None = None,
+             max_attempts: int | None = None) -> TikTokResponse:
+        """`max_attempts=1` para llamadas no idempotentes (p. ej. iniciar una subida)."""
         query = urllib.parse.urlencode({k: v for k, v in (params or {}).items()
                                         if v is not None})
         url = f"{API_BASE}/{path.strip('/')}/" + (f"?{query}" if query else "")
-        return self._request(url, endpoint=f"/v2/{path.strip('/')}", body=body or {})
+        return self._request(url, endpoint=f"/v2/{path.strip('/')}", body=body or {},
+                             max_attempts=max_attempts)
 
     def _request(self, url: str, *, endpoint: str,
-                 body: dict[str, Any] | None) -> TikTokResponse:
+                 body: dict[str, Any] | None,
+                 max_attempts: int | None = None) -> TikTokResponse:
         try:
-            return self._send(url, endpoint=endpoint, body=body)
+            return self._send(url, endpoint=endpoint, body=body, max_attempts=max_attempts)
         except TokenRejectedError:
             if self._on_token_rejected is None:
                 raise
@@ -127,10 +131,11 @@ class TikTokHttpClient:
                 raise
             self.token_rejected = False
             self._log.info("Token de TikTok renovado; se repite %s una vez.", endpoint)
-            return self._send(url, endpoint=endpoint, body=body)
+            return self._send(url, endpoint=endpoint, body=body, max_attempts=max_attempts)
 
     def _send(self, url: str, *, endpoint: str,
-              body: dict[str, Any] | None) -> TikTokResponse:
+              body: dict[str, Any] | None,
+              max_attempts: int | None = None) -> TikTokResponse:
         validate_tiktok_url(url)
         if self.token_rejected:
             raise TokenRejectedError(ApiErrorDetail(
@@ -140,7 +145,8 @@ class TikTokHttpClient:
 
         payload_bytes = (json.dumps(body).encode("utf-8") if body is not None else None)
         last: MetaApiError | None = None
-        for attempt in range(1, self._max_attempts + 1):
+        attempts = max(1, max_attempts or self._max_attempts)
+        for attempt in range(1, attempts + 1):
             request = urllib.request.Request(
                 url, data=payload_bytes,
                 headers=self._headers(json_body=payload_bytes is not None),
@@ -163,7 +169,7 @@ class TikTokHttpClient:
                     if isinstance(error, TokenRejectedError):
                         self.token_rejected = True
                         raise error
-                    if not error.retryable or attempt >= self._max_attempts:
+                    if not error.retryable or attempt >= attempts:
                         raise error
                     self._backoff(attempt, endpoint, error.detail.message)
             except urllib.error.HTTPError as exc:
@@ -181,7 +187,7 @@ class TikTokHttpClient:
                     if isinstance(error, TokenRejectedError):
                         self.token_rejected = True
                     raise error
-                if exc.code not in RETRYABLE_HTTP or attempt >= self._max_attempts:
+                if exc.code not in RETRYABLE_HTTP or attempt >= attempts:
                     raise error
                 self._backoff(attempt, endpoint, error.detail.message)
             except (urllib.error.URLError, TimeoutError) as exc:
@@ -189,7 +195,7 @@ class TikTokHttpClient:
                 last = TransientApiError(ApiErrorDetail(
                     http_status=None, code=None, subcode=None, error_type="transport",
                     message=f"Fallo de red hacia TikTok: {reason}", endpoint=endpoint))
-                if attempt >= self._max_attempts:
+                if attempt >= attempts:
                     raise last
                 self._backoff(attempt, endpoint, str(reason))
         assert last is not None
@@ -203,7 +209,7 @@ class TikTokHttpClient:
             return None
         detail = ApiErrorDetail(
             http_status=status, code=None, subcode=None, error_type=code,
-            message=error.get("message") or code, endpoint=endpoint,
+            message=f"{code}: {error.get('message') or code}", endpoint=endpoint,
         )
         if code in AUTH_ERROR_CODES:
             return TokenRejectedError(detail)

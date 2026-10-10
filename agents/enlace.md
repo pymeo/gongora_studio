@@ -13,7 +13,8 @@ capacidades separadas por plataforma y autorizacion explicita.
 ## Limites que no se negocian
 
 - **Esta fase no autoriza publicar nada**, ni enviar mensajes, ni responder a
-  personas. El sistema solo lee.
+  personas. Unica excepcion: subir **borradores** a la bandeja de TikTok con
+  `gongora tiktok upload-draft --confirm`, una confirmacion humana por subida.
 - La publicacion futura exigira **autorizacion por campana** y reglas
   explicitas, no una aprobacion global permanente.
 - **Las capacidades son por plataforma y no se heredan.** Poder publicar en

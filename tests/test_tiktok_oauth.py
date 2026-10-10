@@ -145,7 +145,7 @@ def test_authorization_url_has_all_parameters():
     query = dict(urllib.parse.parse_qsl(parts.query))
     assert query == {
         "client_key": "ck-test", "response_type": "code",
-        "scope": "user.info.basic,user.info.profile,user.info.stats,video.list,video.upload",
+        "scope": "user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish",
         "redirect_uri": "http://localhost:3455/callback/", "state": "s-1",
         "code_challenge": pkce.challenge, "code_challenge_method": "S256",
     }
@@ -376,7 +376,7 @@ def test_service_maps_original_names_and_keeps_gaps(tmp_path):
     assert videos[0].description.source == "tiktok.video_description"
     assert videos[0].description.looks_like_injection
     with pytest.raises(CapabilityDisabled):
-        service.upload_video("clip.mp4")
+        service.upload_draft(Path("clip.mp4"), confirmed=False)
 
 
 # ------------------------------------------------------- redaction / repo

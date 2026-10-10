@@ -295,6 +295,11 @@ class MarkdownReportBuilder:
             "- **Las reproducciones no son personas.** `views` cuenta reproducciones o "
             "impresiones, no oyentes unicos, y no tiene ninguna relacion con las "
             "escuchas en Spotify.",
+            "- **`views`, `likes` y `comments` de Instagram son solo organicos.** No "
+            "cuentan lo que aportan los anuncios o promociones. `total_views`, "
+            "`total_likes` y `total_comments` si lo incluyen; por eso pueden ser "
+            "bastante mayores en una publicacion promocionada. `reach` no tiene "
+            "equivalente total en la API.",
             "- **`reach` es una estimacion de Meta** de cuentas unicas alcanzadas, con "
             "su propia definicion. No es verificable desde fuera.",
             "- **Los valores acumulados no se suman entre dias.** Cada snapshot es el "

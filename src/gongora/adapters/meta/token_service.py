@@ -166,7 +166,20 @@ def exchange_for_long_lived(*, short_token: str, app_id: str, app_secret: str,
 
 def fetch_page_token(*, user_token: str, page_id: str,
                      graph_version: str) -> ExchangeResult:
-    """Paso 2: token de Pagina, que no caduca si el de usuario es de larga duracion."""
+    """Paso 2: token de Pagina, que no caduca si el de usuario es de larga duracion.
+
+    Si el token recibido YA es de Pagina, `/me/accounts` no existe (el nodo
+    `/me` es la propia pagina). En ese caso no hay nada que canjear: se informa
+    y se conserva el token tal cual.
+    """
+    quien = _get_json(f"{graph_version}/me", {"fields": "id,name",
+                                              "access_token": user_token})
+    if str(quien.get("id")) == str(page_id):
+        return ExchangeResult(
+            ok=True, token=user_token,
+            detail=(f"El token ya es de la pagina {page_id} "
+                    f"({quien.get('name') or 'sin nombre'}): no hace falta canjearlo. "
+                    "Los tokens de Pagina no tienen fecha de caducidad."))
     payload = _get_json(f"{graph_version}/me/accounts",
                         {"fields": "id,name,access_token", "access_token": user_token})
     if "error" in payload:

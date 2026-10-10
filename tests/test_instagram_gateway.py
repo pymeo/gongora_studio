@@ -93,6 +93,22 @@ def test_insights_del_reel_devuelve_el_nucleo(credentials):
     assert resultado.values["comments"] == (0.0, "lifetime")  # 0 real, no hueco
 
 
+def test_pide_los_totales_con_anuncios_ademas_de_lo_organico(credentials):
+    """`views` es solo organico; `total_views` incluye la promocion. Se guardan ambos."""
+    media = MediaItem(platform=Platform.INSTAGRAM, media_id="18095103203640376",
+                      media_type="VIDEO", product_type="REELS", permalink=None,
+                      published_at=None)
+    respuesta = _insights(views=1808, total_views=5565, likes=22, total_likes=47)
+    gateway = _gateway(credentials, {"/insights": respuesta})
+    resultado = gateway.fetch_insights(media)
+    pedidas = " ".join(url for url, _ in gateway._client._opener.requests)
+    for metrica in ("total_views", "total_likes", "total_comments"):
+        assert metrica in pedidas
+    assert resultado.values["views"] == (1808.0, "lifetime")
+    assert resultado.values["total_views"] == (5565.0, "lifetime")
+    assert "total_comments" in resultado.gaps     # ausente: hueco, no cero
+
+
 def test_degrada_a_metrica_por_metrica_si_la_peticion_conjunta_falla(credentials):
     """Si una metrica rompe la peticion, se conservan las que si funcionan."""
     media = MediaItem(platform=Platform.INSTAGRAM, media_id="1", media_type="VIDEO",

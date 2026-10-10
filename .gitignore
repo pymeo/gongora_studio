@@ -18,3 +18,11 @@ dist/
 
 # Datos locales de Gongora Studio (base de datos, informes, respuestas crudas, logs)
 var/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Material audiovisual: masters de audio y renders. Pesan mucho y no van al repo.
+music/
+output/
+ops/video/.ffpath

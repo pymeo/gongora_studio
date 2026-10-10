@@ -24,6 +24,7 @@ from typing import Any
 
 from gongora.adapters.tiktok.http_client import TikTokHttpClient
 from gongora.adapters.tiktok.session import TikTokSession
+from gongora.adapters.tiktok.upload import DraftUploadResult, TikTokDraftUploader
 from gongora.config import (
     TikTokAppConfig,
     TikTokCredentials,
@@ -186,16 +187,60 @@ class TikTokService:
 
     # ----------------------------------------------------------- escritura
 
-    def upload_video(self, *_args: Any, **_kwargs: Any) -> None:
-        """Prevista (scope video.upload, Content Posting API). Desactivada.
+    def upload_draft(self, path: Path, *, confirmed: bool,
+                     on_progress: Any = lambda _msg: None) -> DraftUploadResult:
+        """Sube `path` como BORRADOR a la bandeja de la app de TikTok (scope video.upload).
 
-        Esta fase solo lee: no se envia contenido a ninguna plataforma. Cuando
-        se autorice, la implementacion ira aqui y la usara Enlace, con
-        autorizacion por campana.
+        Nunca publica: una persona termina la publicacion en la app. Exige
+        `confirmed=True` en cada llamada (confirmacion humana por subida).
         """
-        raise CapabilityDisabled(
-            "Subir contenido a TikTok esta desactivado en esta fase (solo lectura). "
-            "Requiere autorizacion explicita por campana.")
+        if not confirmed:
+            raise CapabilityDisabled(
+                "Subir un borrador a TikTok requiere confirmacion humana explicita "
+                "en cada subida.")
+        client = self._require()
+        scopes = self._granted()
+        if scopes and "video.upload" not in scopes:
+            raise CapabilityDisabled(
+                "El token de TikTok no tiene el scope video.upload. "
+                "Ejecuta: gongora tiktok login")
+        return TikTokDraftUploader(client).upload(path, on_progress=on_progress)
+
+    def publish(self, path: Path, caption: str, *, confirmed: bool,
+                privacy_level: str = "SELF_ONLY", is_aigc: bool = False,
+                on_progress: Any = lambda _msg: None) -> DraftUploadResult:
+        """Publicacion directa con descripcion (scope video.publish).
+
+        Por defecto en privado (`SELF_ONLY`): la persona decide en la app si lo
+        hace publico. Exige `confirmed=True` en cada llamada.
+        """
+        if not confirmed:
+            raise CapabilityDisabled(
+                "Publicar en TikTok requiere confirmacion humana explicita en cada video.")
+        client = self._require()
+        scopes = self._granted()
+        if scopes and "video.publish" not in scopes:
+            raise CapabilityDisabled(
+                "El token de TikTok no tiene el scope video.publish. Activalo en TikTok "
+                "for Developers (Content Posting API, Direct Post) y ejecuta: "
+                "gongora tiktok login")
+        uploader = TikTokDraftUploader(client)
+        creator = uploader.creator_info()
+        if privacy_level not in creator.privacy_level_options:
+            raise CapabilityDisabled(
+                f"TikTok no ofrece la privacidad {privacy_level} para esta cuenta. "
+                f"Opciones: {', '.join(creator.privacy_level_options) or 'ninguna'}.")
+        on_progress(f"Cuenta: {creator.nickname or '-'}; privacidad: {privacy_level}.")
+        post_info = {
+            "title": caption,
+            "privacy_level": privacy_level,
+            "disable_comment": creator.comment_disabled,
+            "disable_duet": creator.duet_disabled,
+            "disable_stitch": creator.stitch_disabled,
+            "video_cover_timestamp_ms": 1000,
+            "is_aigc": is_aigc,
+        }
+        return uploader.upload(path, post_info=post_info, on_progress=on_progress)
 
 
 def _video(item: dict[str, Any]) -> TikTokVideo:

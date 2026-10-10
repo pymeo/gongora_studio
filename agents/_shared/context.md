@@ -84,9 +84,15 @@ Se conserva el nombre original de cada API. `views` de Instagram y
 
 Autorizado: **lecturas** de Meta, trabajo local y programacion de la recogida.
 
+Excepcion autorizada (2026-10-07): subir un video como **borrador** a la
+bandeja de la app de TikTok (`gongora tiktok upload-draft <mp4> --confirm`,
+scope `video.upload`), con confirmacion humana en cada subida. El borrador no
+es publico: una persona escribe el texto y publica desde la app. Cada subida
+queda registrada en `var/tiktok_uploads.jsonl`.
+
 No autorizado en esta fase:
 
-- Publicar contenido en ninguna plataforma.
+- Publicar contenido en ninguna plataforma (incluida la publicacion directa en TikTok).
 - Enviar mensajes o responder a personas.
 - Activar servicios de pago o gasto nuevo.
 

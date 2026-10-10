@@ -90,15 +90,16 @@ TIKTOK_SECRET_KEYS = ("TIKTOK_CLIENT_SECRET", "TIKTOK_ACCESS_TOKEN", "TIKTOK_REF
 
 #: Redirect URI registrada en TikTok for Developers (Login Kit, Desktop).
 DEFAULT_TIKTOK_REDIRECT_URI = "http://localhost:3455/callback/"
-#: Scopes que se piden en el login. Pedir un scope no habilita la capacidad:
-#: `video.upload` se solicita para no repetir el OAuth mas adelante, pero la
-#: subida sigue desactivada en esta fase (ver TikTokService.upload_video).
+#: Scopes que se piden en el login. `video.upload` (borrador) y `video.publish`
+#: (publicacion directa) solo se usan con confirmacion explicita por video
+#: (TikTokService.upload_draft / publish).
 DEFAULT_TIKTOK_SCOPES = (
     "user.info.basic",
     "user.info.profile",
     "user.info.stats",
     "video.list",
     "video.upload",
+    "video.publish",
 )
 
 #: Datos de la app (TikTok for Developers): el entorno del proceso manda sobre
